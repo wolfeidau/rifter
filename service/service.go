@@ -10,6 +10,8 @@ type ServiceOptions struct {
 	SslKeyFile  string
 	Port        string
 	Endpoints   ListOptions
+	Redis       string
+	Auth        string
 }
 
 type ListOptions []string

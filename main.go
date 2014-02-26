@@ -14,10 +14,18 @@ func main() {
 	}
 	options := &service.ServiceOptions{}
 
+	// listener related settings
 	flag.StringVar(&options.Port, "port", ":1883", "The IP Address and TCP port to listen")
 	flag.StringVar(&options.SslCertFile, "sslcert", "", "File containing SSL Certificates")
 	flag.StringVar(&options.SslKeyFile, "sslkey", "", "File containing SSL Private Key")
+
+	// authentication related options
+	flag.StringVar(&options.Auth, "auth", "disabled", "Authentication method 'disabled' or 'redis'")
+	flag.StringVar(&options.Redis, "redis", "", "REDIS which is used for authentication")
+
+	// backend mqtt servers to load balance across
 	flag.Var(&options.Endpoints, "mqtt", "MQTT endpoints")
+
 	flag.Parse()
 
 	svc, err := service.NewService(options)
