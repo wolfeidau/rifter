@@ -10,7 +10,8 @@ import (
 func Test3(t *testing.T) { TestingT(t) }
 
 type TopicRewriterSuite struct {
-	topicRewriter TopicRewriter
+	topicRewriter    TopicRewriter
+	topicRewriterDup TopicRewriter
 }
 
 var _ = Suite(&TopicRewriterSuite{})
@@ -21,11 +22,25 @@ func (s *TopicRewriterSuite) SetUpTest(c *C) {
 		Replacement: "$cloud/123",
 	}
 
+	s.topicRewriterDup = &TopicPrefixRewriter{
+		Prefix:      "block",
+		Replacement: "cloud/123",
+	}
+
 }
 
 func (s *TopicRewriterSuite) TestTopicName(c *C) {
 	topicName := s.topicRewriter.RewriteTopicName("$block/test/123")
 	c.Assert(topicName, Equals, "$cloud/123/test/123")
+
+	// duplicate tokens should only do prefix
+	topicNameDup := s.topicRewriterDup.RewriteTopicName("block/something/block")
+	c.Assert(topicNameDup, Equals, "cloud/123/something/block")
+
+	// test it ignores and returns the original
+	topicNameIngore := s.topicRewriterDup.RewriteTopicName("cloud/something/block")
+	c.Assert(topicNameIngore, Equals, "cloud/something/block")
+
 }
 
 func (s *TopicRewriterSuite) TestTopicNames(c *C) {

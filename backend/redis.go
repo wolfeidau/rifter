@@ -21,12 +21,14 @@ type RedisBackend struct {
 	Config       *RedisConfig
 	TimeProvider timeutils.TimeProvider
 	Pool         *redis.Pool
+	Expires      time.Duration
 }
 
 func NewRedisBackend(config *RedisConfig, timeProvider timeutils.TimeProvider) (*RedisBackend, error) {
 	backend := &RedisBackend{
 		Config:       config,
 		TimeProvider: timeProvider,
+		Expires:      time.Hour * 48, // default redis key expiry
 	}
 	backend.initialize()
 
@@ -49,10 +51,8 @@ func (b *RedisBackend) GetCount(key string, period time.Duration) (int64, error)
 			} else {
 				return counter, nil
 			}
-
-		} else {
-			return 0, nil
 		}
+		return 0, nil
 	}
 
 }
@@ -64,11 +64,16 @@ func (b *RedisBackend) UpdateCount(key string, period time.Duration, increment i
 
 	redisKey := buildRedisKey(b, key, period)
 
-	if _, err := redis.Int64(conn.Do("INCRBY", redisKey, increment)); err != nil {
+	conn.Send("MULTI")
+	conn.Send("INCRBY", redisKey, increment)
+	// expire key based on the configured duration
+	conn.Send("EXPIREAT", redisKey, time.Now().Add(b.Expires).Unix())
+
+	_, err := conn.Do("EXEC")
+	if err != nil {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (b *RedisBackend) initialize() {

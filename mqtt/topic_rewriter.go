@@ -12,6 +12,7 @@ type TopicRewriter interface {
 	RewriteTopics(topics []mqtt.TopicQos) []mqtt.TopicQos
 }
 
+// rewriter which checks for the prefix and replaces just that.
 type TopicPrefixRewriter struct {
 	Prefix      string
 	Replacement string
@@ -25,20 +26,23 @@ func NewTopicPrefixRewriter(prefix string, replacement string) *TopicPrefixRewri
 }
 
 func (tpw *TopicPrefixRewriter) RewriteTopicName(topic string) string {
-	return strings.Replace(topic, tpw.Prefix, tpw.Replacement, 1)
+	if strings.HasPrefix(topic, tpw.Prefix) {
+		return strings.Replace(topic, tpw.Prefix, tpw.Replacement, 1)
+	} else {
+		return topic
+	}
 }
 
 func (tpw *TopicPrefixRewriter) RenameTopicNames(topicNames []string) []string {
 	for i, _ := range topicNames {
-		topicNames[i] = strings.Replace(topicNames[i], tpw.Prefix, tpw.Replacement, 1)
+		topicNames[i] = tpw.RewriteTopicName(topicNames[i])
 	}
 	return topicNames
 }
 
 func (tpw *TopicPrefixRewriter) RewriteTopics(topics []mqtt.TopicQos) []mqtt.TopicQos {
 	for i, _ := range topics {
-		topics[i].Topic = strings.Replace(topics[i].Topic, tpw.Prefix, tpw.Replacement, 1)
+		topics[i].Topic = tpw.RewriteTopicName(topics[i].Topic)
 	}
 	return topics
-
 }
